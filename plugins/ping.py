@@ -1,6 +1,5 @@
 from main import client
 from telethon import events
-
-@client.on(events.NewMessage(outgoing=True, pattern=r"\.بنج"))
-async def ping(event):
-    await event.edit("🚀 **شغال حبيبي!**")
+@client.on(events.NewMessage(outgoing=True, pattern=r"\.فحص"))
+async def test(event):
+    await event.edit("✅ **تم تحديث الحساب.. اليوزربوت شغال!**")
