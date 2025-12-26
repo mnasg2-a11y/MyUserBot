@@ -1,12 +1,5 @@
 from telethon import events
-
-try:
-    from main import client
-except ImportError:
-    import sys
-    import os
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/..')
-    from main import client
+from telethon import TelegramClient
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'\.معلومات'))
 async def info_handler(event):
