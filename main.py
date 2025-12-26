@@ -1,39 +1,58 @@
-importimport os
+import os
 import asyncio
+import glob
+import importlib
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from dotenv import load_dotenv
 
-# اسم ملف الإعدادات
+# 1. إعداد ملف البيانات الحساسة .env
 ENV_FILE = ".env"
 
 def setup_env():
-    """وظيفة لإعداد البيانات عند أول تشغيل"""
     if not os.path.exists(ENV_FILE):
         print("--- 🛠 إعداد البوت لأول مرة ---")
-        api_id = input("أدخل API_ID الخاص بك: ")
-        api_hash = input("أدخل API_HASH الخاص بك: ")
+        api_id = input("أدخل API_ID: ")
+        api_hash = input("أدخل API_HASH: ")
         
-        # إنشاء عميل مؤقت لاستخراج الجلسة
-        with TelegramClient(StringSession(), api_id, api_hash) as client:
-            session_str = client.session.save()
+        with TelegramClient(StringSession(), api_id, api_hash) as temp_client:
+            session_str = temp_client.session.save()
             
-        # حفظ البيانات في ملف .env
         with open(ENV_FILE, "w") as f:
             f.write(f"API_ID={api_id}\n")
             f.write(f"API_HASH={api_hash}\n")
             f.write(f"STRING_SESSION={session_str}\n")
-        print("✅ تم حفظ البيانات بنجاح في ملف .env")
+        print("✅ تم حفظ البيانات بنجاح!")
 
-# تشغيل الإعداد التفاعلي
 setup_env()
-
-# تحميل البيانات من الملف
 load_dotenv(ENV_FILE)
+
+# 2. استخراج البيانات
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 STRING_SESSION = os.getenv("STRING_SESSION")
 
+# 3. تشغيل العميل
+client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
+
+def load_plugins():
+    path = "plugins/*.py"
+    files = glob.glob(path)
+    for name in files:
+        plugin_name = name.replace("/", ".").replace("\\", ".").replace(".py", "")
+        importlib.import_module(plugin_name)
+        print(f"✅ تم تحميل: {plugin_name}")
+
+print("🚀 اليوزربوت قيد التشغيل...")
+
+async def start_bot():
+    load_plugins()
+    await client.start()
+    await client.run_until_disconnected()
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(start_bot())
 # تشغيل البوت الفعلي
 client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
 
