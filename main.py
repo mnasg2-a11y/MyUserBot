@@ -1,11 +1,7 @@
-import os, asyncio, importlib, sys, logging
+import os, asyncio, sys
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from dotenv import load_dotenv
-
-# إعدادات اللوج
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # 1. إعداد الجلسة والبيانات
 ENV_FILE = ".env"
@@ -29,10 +25,7 @@ client = TelegramClient(
     os.getenv("API_HASH")
 )
 
-# متغير لتخزين الأوامر المحملة
-loaded_commands = {}
-
-# 2. وظيفة تحميل الـ plugins
+# 2. وظيفة تحميل الـ plugins - طريقة أبسط
 def load_plugins():
     plugins_dir = "plugins"
     if not os.path.exists(plugins_dir):
@@ -40,39 +33,34 @@ def load_plugins():
         os.makedirs(plugins_dir)
         return
     
-    # مسح الكاش القديم
-    for module_name in list(sys.modules.keys()):
-        if module_name.startswith('plugins.'):
-            del sys.modules[module_name]
+    # تأكد من وجود __init__.py
+    init_file = os.path.join(plugins_dir, "__init__.py")
+    if not os.path.exists(init_file):
+        with open(init_file, "w") as f:
+            f.write("# Package\n")
     
-    # تحميل كل ملف
+    # أضف plugins إلى المسار
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    
+    # قائمة الملفات المحملة
+    loaded_plugins = []
+    
     for filename in os.listdir(plugins_dir):
         if filename.endswith(".py") and not filename.startswith("__"):
             module_name = f"plugins.{filename[:-3]}"
             try:
-                # مسح الموديل من الذاكرة أولاً
+                # حذف الموديل إذا كان محملاً سابقاً
                 if module_name in sys.modules:
                     del sys.modules[module_name]
                 
-                # استيراد الملف
-                spec = importlib.util.spec_from_file_location(
-                    module_name, 
-                    os.path.join(plugins_dir, filename)
-                )
-                module = importlib.util.module_from_spec(spec)
+                # استيراد الملف مباشرة
+                exec(open(f"{plugins_dir}/{filename}", encoding="utf-8").read(), globals())
                 
-                # حقن العميل في namespace الموديل
-                module.client = client
-                
-                # تنفيذ الموديل
-                spec.loader.exec_module(module)
-                
-                # تسجيل الأوامر المحملة
-                loaded_commands[filename] = module_name
+                loaded_plugins.append(filename)
                 print(f"✅ تم تحميل: {module_name}")
                 
             except Exception as e:
-                print(f"❌ خطأ في تحميل {module_name}: {str(e)[:100]}")
+                print(f"❌ خطأ في تحميل {module_name}: {e}")
 
 # 3. أمر اختبار أساسي في main للتأكد
 @client.on(events.NewMessage(outgoing=True, pattern=r'\.مين'))
@@ -91,23 +79,19 @@ async def start_userbot():
     # الحصول على معلومات المستخدم
     me = await client.get_me()
     print(f"\n✅ البوت متصل الآن باسم: {me.first_name} (@{me.username})")
-    print(f"📊 عدد الأوامر المحملة: {len(loaded_commands)}")
     
     # عرض الأوامر المتاحة
-    if loaded_commands:
-        print("\n📋 الأوامر المتاحة من plugins:")
-        for cmd in loaded_commands.keys():
-            print(f"   • {cmd}")
-    
     print("\n📝 جرب إرسال الأوامر التالية:")
-    print("   .فحص  - لاختبار plugins")
-    print("   .ايدي - لمعرفة الأيدي")
-    print("   .مين  - لاختبار main.py")
+    print("   .فحص     - لاختبار plugins")
+    print("   .ايدي    - لمعرفة الأيدي")
+    print("   .معلومات - لمعلومات البوت")
+    print("   .مين     - لاختبار main.py")
     
     # إرسال رسالة تأكيد
     await client.send_message('me', '✅ *البوت يعمل الآن!*\n\nيمكنك استخدام الأوامر:'
                               '\n.فحص - للاختبار'
                               '\n.ايدي - لمعرفة الأيدي'
+                              '\n.معلومات - لمعلومات البوت'
                               '\n.مين - للتأكد من التشغيل')
     
     print("\n⏳ في انتظار الأوامر...")
