@@ -1,4 +1,3 @@
-cat <<EOF > main.py
 import os, asyncio, glob, importlib
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
@@ -43,4 +42,3 @@ async def run_bot():
 
 if __name__ == "__main__":
     asyncio.run(run_bot())
-EOF
