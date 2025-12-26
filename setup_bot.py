@@ -38,11 +38,14 @@ def save_user_data():
     with open("users_data/user_data.json", "w", encoding="utf-8") as f:
         json.dump(user_data, f, ensure_ascii=False, indent=2)
 
-# دالة لإنشاء ملف السورس
+# دالة لإنشاء ملف السورس - معدلة بدون أخطاء
 def create_userbot_files(user_id):
-    # هيكل ملفات السورس
-    files = {
-        "main.py": """import os, asyncio, sys, importlib
+    # إنشاء أرشيف ZIP
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # ملف main.py
+        main_py_content = '''import os, asyncio, sys, importlib
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from dotenv import load_dotenv
@@ -73,7 +76,7 @@ client = TelegramClient(
 def load_plugins():
     plugins_dir = "plugins"
     if not os.path.exists(plugins_dir):
-        print(f"⚠️ مجلد {{plugins_dir}} غير موجود! جاري إنشاؤه...")
+        print(f"⚠️ مجلد {plugins_dir} غير موجود! جاري إنشاؤه...")
         os.makedirs(plugins_dir)
         open(os.path.join(plugins_dir, "__init__.py"), "w").close()
         return
@@ -84,10 +87,10 @@ def load_plugins():
             try:
                 with open(os.path.join(plugins_dir, filename), "r", encoding="utf-8") as f:
                     exec(f.read(), {"client": client, "events": events})
-                print(f"✅ تم تحميل: {{filename}}")
+                print(f"✅ تم تحميل: {filename}")
                 loaded += 1
             except Exception as e:
-                print(f"❌ خطأ في {{filename}}: {{e}}")
+                print(f"❌ خطأ في {filename}: {e}")
     
     return loaded
 
@@ -110,29 +113,33 @@ async def ping_handler(event):
 # أمر الأيدي
 @client.on(events.NewMessage(outgoing=True, pattern=r'\\.ايدي'))
 async def id_handler(event):
-    await event.edit(f"👤 **ايديك هو:** `{{event.sender_id}}`")
+    await event.edit(f"👤 **ايديك هو:** `{event.sender_id}`")
 
 async def main():
     print("🚀 جاري تشغيل اليوزربوت...")
     
     loaded = load_plugins()
-    print(f"📂 تم تحميل {{loaded}} أمر من plugins")
+    print(f"📂 تم تحميل {loaded} أمر من plugins")
     
     await client.start()
     me = await client.get_me()
-    print(f"✅ البوت متصل: {{me.first_name}}")
+    print(f"✅ البوت متصل: {me.first_name}")
     print("⏳ في انتظار الأوامر...")
     await client.run_until_disconnected()
 
 if __name__ == "__main__":
-    asyncio.run(main())
-""",
+    asyncio.run(main())'''
         
-        "requirements.txt": """telethon==1.34.0
+        zip_file.writestr("main.py", main_py_content)
+        
+        # ملف requirements.txt
+        requirements_content = '''telethon==1.34.0
 python-dotenv==1.0.0
-aiohttp==3.9.1""",
+aiohttp==3.9.1'''
+        zip_file.writestr("requirements.txt", requirements_content)
         
-        "README.md": """# 🚀 سورس اليوزربوت
+        # ملف README.md
+        readme_content = '''# 🚀 سورس اليوزربوت
 
 تم تنصيب هذا السورس عبر بوت @YourSetupBot
 
