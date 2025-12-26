@@ -18,25 +18,23 @@ if not os.path.exists(ENV_FILE):
 
 load_dotenv(ENV_FILE)
 
-# إنشاء العميل
+# إنشاء العميل - مهم: قبل أي استيراد للملفات الأخرى
 client = TelegramClient(
     StringSession(os.getenv("STRING_SESSION")), 
     int(os.getenv("API_ID")), 
     os.getenv("API_HASH")
 )
 
-# 2. إضافة أمر فحص أساسي هنا في main.py للتأكد
-@client.on(events.NewMessage(outgoing=True, pattern=r"\.فحص"))
-async def main_ping_handler(event):
-    await event.edit("✅ **جاري التشغيل من main.py مباشرة!**")
-
-# 3. وظيفة تحميل ملفات الـ plugins
+# 2. وظيفة تحميل ملفات الـ plugins - معدلة
 def load_plugins():
     plugins_dir = "plugins"
     if not os.path.exists(plugins_dir):
         print(f"⚠️ مجلد {plugins_dir} غير موجود! جاري إنشاؤه...")
         os.makedirs(plugins_dir)
         return
+    
+    # قائمة الملفات المحملة
+    loaded_plugins = []
     
     for filename in os.listdir(plugins_dir):
         if filename.endswith(".py") and filename != "__init__.py":
@@ -52,9 +50,19 @@ def load_plugins():
                 # إعادة تحميل للتأكد من التحديثات
                 importlib.reload(module)
                 
+                loaded_plugins.append(filename)
                 print(f"✅ تم تحميل: {module_name}")
+                
+            except ImportError as e:
+                print(f"⚠️ تحذير في {module_name}: {e}")
+            except SyntaxError as e:
+                print(f"❌ خطأ في تركيب {module_name}: {e}")
             except Exception as e:
                 print(f"❌ خطأ في تحميل {module_name}: {e}")
+    
+    print(f"\n📂 إجمالي الملفات المحملة: {len(loaded_plugins)}")
+    for plugin in loaded_plugins:
+        print(f"   • {plugin}")
 
 async def start_userbot():
     print("🚀 جاري تشغيل اليوزربوت...")
@@ -67,12 +75,22 @@ async def start_userbot():
     
     # الحصول على معلومات المستخدم
     me = await client.get_me()
-    print(f"✅ البوت متصل الآن باسم: {me.first_name} (@{me.username})")
-    print("📝 جرب إرسال الأوامر التالية في أي دردشة:")
-    print("   • .فحص  - لفحص البوت")
-    print("   • .ايدي - لمعرفة الأيدي")
+    print(f"\n✅ البوت متصل الآن باسم: {me.first_name} (@{me.username})")
+    print("\n📝 جرب إرسال الأوامر التالية في أي دردشة:")
+    print("   • .فحص     - فحص البوت من plugins")
+    print("   • .ايدي    - معرفة الأيدي")
+    print("   • .معلومات - معلومات البوت (إذا كان الملف موجوداً)")
+    print("\n📌 ملاحظة: تأكد أنك ترسل الأوامر من حساب البوت نفسه!")
+    
+    # إظهار رسالة تأكيد
+    async with client.conversation('me') as conv:
+        await conv.send_message('🚀 **البوت يعمل الآن!**\n\n'
+                              'يمكنك استخدام الأوامر:\n'
+                              '.فحص - للتحقق\n'
+                              '.ايدي - لمعرفة الأيدي')
     
     # تشغيل حتى الانقطاع
+    print("\n⏳ في انتظار الأوامر...")
     await client.run_until_disconnected()
 
 if __name__ == "__main__":
