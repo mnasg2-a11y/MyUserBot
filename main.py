@@ -3,39 +3,53 @@ from telethon import TelegramClient
 from telethon.sessions import StringSession
 from dotenv import load_dotenv
 
+# 1. إعداد الجلسة والبيانات
 ENV_FILE = ".env"
-
-async def setup():
-    if not os.path.exists(ENV_FILE):
-        print("--- 🛠 إعداد البوت لأول مرة ---")
-        api_id = input("أدخل API_ID: ")
-        api_hash = input("أدخل API_HASH: ")
-        async with TelegramClient(StringSession(), api_id, api_hash) as temp_client:
-            session_str = temp_client.session.save()
-            with open(ENV_FILE, "w") as f:
-                f.write(f"API_ID={api_id}\nAPI_HASH={api_hash}\nSTRING_SESSION={session_str}\n")
-        print("✅ تم الحفظ! أعد تشغيل السكريبت الآن بالأمر: python main.py")
-        exit()
+if not os.path.exists(ENV_FILE):
+    print("--- 🛠 إعداد البوت لأول مرة ---")
+    api_id = input("أدخل API_ID: ")
+    api_hash = input("أدخل API_HASH: ")
+    with TelegramClient(StringSession(), api_id, api_hash) as temp:
+        session_str = temp.session.save()
+    with open(ENV_FILE, "w") as f:
+        f.write(f"API_ID={api_id}\nAPI_HASH={api_hash}\nSTRING_SESSION={session_str}\n")
+    print("✅ تم الحفظ! أعد تشغيل البوت الآن.")
+    exit()
 
 load_dotenv(ENV_FILE)
-API_ID = int(os.getenv("API_ID"))
-API_HASH = os.getenv("API_HASH")
-STRING_SESSION = os.getenv("STRING_SESSION")
+client = TelegramClient(
+    StringSession(os.getenv("STRING_SESSION")), 
+    int(os.getenv("API_ID")), 
+    os.getenv("API_HASH")
+)
 
-client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
-
+# 2. وظيفة تحميل ملفات الـ plugins
 def load_plugins():
-    for f in glob.glob("plugins/*.py"):
-        p_name = f.replace("/", ".").replace(".py", "")
-        importlib.import_module(p_name)
-        print(f"✅ تم تحميل الملحق: {p_name}")
+    path = "plugins/*.py"
+    files = glob.glob(path)
+    for name in files:
+        plugin_name = name.replace("/", ".").replace("\\\\", ".").replace(".py", "")
+        importlib.import_module(plugin_name)
+        print(f"✅ تم تحميل الأمر من الملف: {plugin_name}")
 
-async def start_bot():
-    await setup()
-    load_plugins()
+# إضافة: رفع ملفات ال plugins من المجلد بشكل صحيح
+def load_plugins_fixed():
+    for filename in os.listdir("plugins"):
+        if filename.endswith(".py"):
+            plugin_name = f"plugins.{filename[:-3]}"
+            try:
+                importlib.import_module(plugin_name)
+                print(f"✅ تم تحميل: {plugin_name}")
+            except Exception as e:
+                print(f"❌ خطأ في تحميل {plugin_name}: {e}")
+
+async def start_userbot():
+    print("🚀 جاري تشغيل اليوزربوت...")
+    load_plugins()  # الطريقة القديمة
+    load_plugins_fixed()  # الطريقة الجديدة المضمونة
     await client.start()
-    print("🚀 اليوزربوت شغال الآن! جرب إرسال .فحص من حسابك.")
+    print("✅ البوت متصل الآن! جرب إرسال .فحص من حسابك.")
     await client.run_until_disconnected()
 
 if __name__ == "__main__":
-    asyncio.run(start_bot())
+    asyncio.run(start_userbot())
