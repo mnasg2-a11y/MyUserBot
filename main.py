@@ -6,7 +6,7 @@ from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from dotenv import load_dotenv
 
-# 1. إعداد ملف البيانات الحساسة .env
+# ملف الإعدادات
 ENV_FILE = ".env"
 
 def setup_env():
@@ -22,18 +22,36 @@ def setup_env():
             f.write(f"API_ID={api_id}\n")
             f.write(f"API_HASH={api_hash}\n")
             f.write(f"STRING_SESSION={session_str}\n")
-        print("✅ تم حفظ البيانات بنجاح!")
+        print("✅ تم حفظ البيانات!")
 
 setup_env()
 load_dotenv(ENV_FILE)
 
-# 2. استخراج البيانات
+# استخراج البيانات من ملف .env
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 STRING_SESSION = os.getenv("STRING_SESSION")
 
-# 3. تشغيل العميل
 client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
+
+def load_plugins():
+    # تأكد من إنشاء مجلد plugins ووضع ملفاتك فيه
+    path = "plugins/*.py"
+    files = glob.glob(path)
+    for name in files:
+        plugin_name = name.replace("/", ".").replace("\\", ".").replace(".py", "")
+        importlib.import_module(plugin_name)
+        print(f"✅ تم تحميل: {plugin_name}")
+
+async def start_bot():
+    load_plugins()
+    await client.start()
+    print("🚀 اليوزربوت شغال الآن.. أرسل .فحص في أي دردشة")
+    await client.run_until_disconnected()
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(start_bot())
 
 def load_plugins():
     path = "plugins/*.py"
