@@ -7,4 +7,5 @@ async def ping_handler(event):
 
 @client.on(events.NewMessage(outgoing=True, pattern=r"\.ايدي"))
 async def id_handler(event):
-    await event.edit(f"👤 **ايديك هو:** \`{event.sender_id}\`")
+    # استخدم backtick واحد فقط، ليس مع خط مائل
+    await event.edit(f"👤 **ايديك هو:** `{event.sender_id}`")
