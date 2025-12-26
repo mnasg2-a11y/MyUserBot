@@ -1,5 +1,5 @@
-import os, asyncio, glob, importlib, sys
-from telethon import TelegramClient, events
+import os, asyncio, importlib, sys
+from telethon import TelegramClient
 from telethon.sessions import StringSession
 from dotenv import load_dotenv
 
@@ -18,14 +18,14 @@ if not os.path.exists(ENV_FILE):
 
 load_dotenv(ENV_FILE)
 
-# إنشاء العميل - مهم: قبل أي استيراد للملفات الأخرى
+# إنشاء العميل
 client = TelegramClient(
     StringSession(os.getenv("STRING_SESSION")), 
     int(os.getenv("API_ID")), 
     os.getenv("API_HASH")
 )
 
-# 2. وظيفة تحميل ملفات الـ plugins - معدلة
+# 2. وظيفة تحميل ملفات الـ plugins
 def load_plugins():
     plugins_dir = "plugins"
     if not os.path.exists(plugins_dir):
@@ -81,13 +81,7 @@ async def start_userbot():
     print("   • .ايدي    - معرفة الأيدي")
     print("   • .معلومات - معلومات البوت (إذا كان الملف موجوداً)")
     print("\n📌 ملاحظة: تأكد أنك ترسل الأوامر من حساب البوت نفسه!")
-    
-    # إظهار رسالة تأكيد
-    async with client.conversation('me') as conv:
-        await conv.send_message('🚀 **البوت يعمل الآن!**\n\n'
-                              'يمكنك استخدام الأوامر:\n'
-                              '.فحص - للتحقق\n'
-                              '.ايدي - لمعرفة الأيدي')
+    print("💡 أرسل .فحص الآن في أي محادثة لتجربة البوت")
     
     # تشغيل حتى الانقطاع
     print("\n⏳ في انتظار الأوامر...")
