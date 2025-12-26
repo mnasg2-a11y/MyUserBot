@@ -1,5 +1,5 @@
-import os, asyncio, glob, importlib
-from telethon import TelegramClient
+import os, asyncio, glob, importlib, sys
+from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from dotenv import load_dotenv
 
@@ -17,38 +17,62 @@ if not os.path.exists(ENV_FILE):
     exit()
 
 load_dotenv(ENV_FILE)
+
+# إنشاء العميل
 client = TelegramClient(
     StringSession(os.getenv("STRING_SESSION")), 
     int(os.getenv("API_ID")), 
     os.getenv("API_HASH")
 )
 
-# 2. وظيفة تحميل ملفات الـ plugins
-def load_plugins():
-    path = "plugins/*.py"
-    files = glob.glob(path)
-    for name in files:
-        plugin_name = name.replace("/", ".").replace("\\\\", ".").replace(".py", "")
-        importlib.import_module(plugin_name)
-        print(f"✅ تم تحميل الأمر من الملف: {plugin_name}")
+# 2. إضافة أمر فحص أساسي هنا في main.py للتأكد
+@client.on(events.NewMessage(outgoing=True, pattern=r"\.فحص"))
+async def main_ping_handler(event):
+    await event.edit("✅ **جاري التشغيل من main.py مباشرة!**")
 
-# إضافة: رفع ملفات ال plugins من المجلد بشكل صحيح
-def load_plugins_fixed():
-    for filename in os.listdir("plugins"):
-        if filename.endswith(".py"):
-            plugin_name = f"plugins.{filename[:-3]}"
+# 3. وظيفة تحميل ملفات الـ plugins
+def load_plugins():
+    plugins_dir = "plugins"
+    if not os.path.exists(plugins_dir):
+        print(f"⚠️ مجلد {plugins_dir} غير موجود! جاري إنشاؤه...")
+        os.makedirs(plugins_dir)
+        return
+    
+    for filename in os.listdir(plugins_dir):
+        if filename.endswith(".py") and filename != "__init__.py":
+            module_name = f"plugins.{filename[:-3]}"
             try:
-                importlib.import_module(plugin_name)
-                print(f"✅ تم تحميل: {plugin_name}")
+                # حذف النمط من الذاكرة أولاً إذا كان موجوداً
+                if module_name in sys.modules:
+                    del sys.modules[module_name]
+                
+                # استيراد الملف
+                module = importlib.import_module(module_name)
+                
+                # إعادة تحميل للتأكد من التحديثات
+                importlib.reload(module)
+                
+                print(f"✅ تم تحميل: {module_name}")
             except Exception as e:
-                print(f"❌ خطأ في تحميل {plugin_name}: {e}")
+                print(f"❌ خطأ في تحميل {module_name}: {e}")
 
 async def start_userbot():
     print("🚀 جاري تشغيل اليوزربوت...")
-    load_plugins()  # الطريقة القديمة
-    load_plugins_fixed()  # الطريقة الجديدة المضمونة
+    
+    # تحميل الإضافات
+    load_plugins()
+    
+    # بدء العميل
     await client.start()
-    print("✅ البوت متصل الآن! جرب إرسال .فحص من حسابك.")
+    
+    # الحصول على معلومات المستخدم
+    me = await client.get_me()
+    print(f"✅ البوت متصل الآن باسم: {me.first_name} (@{me.username})")
+    print("📝 جرب إرسال الأوامر التالية في أي دردشة:")
+    print("   • .فحص  - لفحص البوت")
+    print("   • .ايدي - لمعرفة الأيدي")
+    
+    # تشغيل حتى الانقطاع
     await client.run_until_disconnected()
 
 if __name__ == "__main__":
